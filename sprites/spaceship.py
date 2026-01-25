@@ -1,7 +1,7 @@
 """Spaceship sprite class."""
 import pygame
 import math
-from constants import WINDOW_WIDTH, WINDOW_HEIGHT, BULLET_SPEED
+from constants import WINDOW_WIDTH, WINDOW_HEIGHT, BULLET_SPEED, SHIP_DRIFT_DECAY, MAX_SHIELDS
 from sprites.bullet import Bullet
 
 
@@ -66,11 +66,15 @@ class Spaceship(pygame.sprite.Sprite):
         self.shield_duration = 30  # frames to show shield animation
         self.hit_invulnerability = 0  # Brief invulnerability after taking damage
         
+        # Power-up system
+        self.invulnerability_time = 0  # frames remaining of invulnerability
+        self.rockets = 0  # Number of rockets available
+        
         # Physics constants
         self.rotation_speed = 6.0  # degrees per frame
         self.acceleration = 0.5  # pixels per frame^2
         self.max_velocity = 10.0
-        self.friction = 0.99  # Slight friction in space
+        self.drift_decay = SHIP_DRIFT_DECAY
         
     def handle_input(self, keys):
         """Handle keyboard input"""
@@ -113,10 +117,10 @@ class Spaceship(pygame.sprite.Sprite):
                 scale = self.max_velocity / velocity_magnitude
                 self.velocity_x *= scale
                 self.velocity_y *= scale
-        
-        # Apply friction (subtle in space)
-        self.velocity_x *= self.friction
-        self.velocity_y *= self.friction
+        else:
+            # Apply drift decay only when not thrusting
+            self.velocity_x *= self.drift_decay
+            self.velocity_y *= self.drift_decay
         
         # Update position
         self.x += self.velocity_x
@@ -151,6 +155,10 @@ class Spaceship(pygame.sprite.Sprite):
         # Decrease hit invulnerability timer
         if self.hit_invulnerability > 0:
             self.hit_invulnerability -= 1
+        
+        # Decrease invulnerability timer (from power-ups)
+        if self.invulnerability_time > 0:
+            self.invulnerability_time -= 1
         
         # Update shield animation
         if self.shield_active:
@@ -213,13 +221,44 @@ class Spaceship(pygame.sprite.Sprite):
         self.fire_side = 'right' if self.fire_side == 'left' else 'left'
         return bullet
     
+    def fire_rocket(self):
+        """Create a rocket traveling in the ship's facing direction. Consumes a rocket."""
+        if self.rockets <= 0 or self.fire_cooldown > 0 or self.is_exploding:
+            return None
+        self.rockets -= 1
+        # For now, rockets behave like regular bullets but faster
+        # This could be enhanced later for different behavior
+        frame_count = len(self.sprites_static) if self.sprites_static else 0
+        if frame_count <= 0:
+            frame_count = 24
+        frame_step = 360.0 / frame_count
+        quantized_rotation = self.current_frame * frame_step
+        rad = math.radians(quantized_rotation - 90)
+        dir_x = math.cos(rad)
+        dir_y = math.sin(rad)
+        # Perpendicular vector to forward direction
+        perp_x = -dir_y
+        perp_y = dir_x
+        gun_offset = 20
+        side_mult = 1 if self.fire_side == 'left' else -1
+        origin_x = self.rect.centerx + dir_x * 20 + perp_x * gun_offset * side_mult
+        origin_y = self.rect.centery + dir_y * 20 + perp_y * gun_offset * side_mult
+        # Rockets are 1.5x faster than regular bullets
+        rocket = Bullet(origin_x, origin_y, dir_x * BULLET_SPEED * 1.5, dir_y * BULLET_SPEED * 1.5)
+        self.fire_cooldown = 8
+        self.firing_timer = self.firing_duration
+        self.fire_side = 'right' if self.fire_side == 'left' else 'left'
+        return rocket
+    
     def take_damage(self, asteroid=None):
-        """Spaceship gets hit by an asteroid. Decrement shields; explode when depleted."""
-        if self.spawn_shield > 0 or self.is_exploding or self.hit_invulnerability > 0:
+        """Spaceship gets hit by an asteroid. Decrement health; explode when depleted."""
+        # Skip damage if spawn shield, already exploding, recently hit, or currently invulnerable
+        if self.spawn_shield > 0 or self.is_exploding or self.hit_invulnerability > 0 or self.invulnerability_time > 0:
             return
+        
         self.health -= 1
         if self.health <= 0:
-            # Ship destroyed - no shield animation
+            # Ship destroyed
             self.is_exploding = True
             self.explosion_tick = 0
             self.explosion_frame = 0

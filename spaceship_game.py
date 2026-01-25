@@ -10,13 +10,17 @@ from constants import (
     BULLET_SPEED, ASTEROID_MIN_SPEED, ASTEROID_MAX_SPEED, ASTEROID_ROTATION_RANGE,
     LEVEL_1_INITIAL_ASTEROIDS, LEVEL_1_MAX_ON_SCREEN, LEVEL_1_TOTAL_ASTEROIDS,
     LEVEL_1_SPAWN_INTERVAL, LEVEL_PROGRESSION_INITIAL, LEVEL_PROGRESSION_MAX,
-    LEVEL_PROGRESSION_TOTAL, LEVEL_PROGRESSION_SPAWN_REDUCTION
+    LEVEL_PROGRESSION_TOTAL, LEVEL_PROGRESSION_SPAWN_REDUCTION,
+    MAX_SHIELDS, INVULNERABILITY_DURATION, NUM_ROCKETS_PER_PICKUP,
+    POWERUP_SPAWN_CHANCE, HEALTH_POWERUP_WEIGHT, INVULNERABILITY_POWERUP_WEIGHT,
+    ROCKETS_POWERUP_WEIGHT, SHIELDS_POWERUP_WEIGHT
 )
-from sprites import Spaceship, Bullet, Asteroid, Explosion
-from utils import load_spritesheet
+from sprites import Spaceship, Bullet, Asteroid, Explosion, PowerUp
+from utils import load_spritesheet, load_powerup_sprites
 from ui import (
     draw_health, draw_score, draw_level, draw_game_over, draw_start_screen,
-    load_high_scores, save_high_scores, is_high_score, add_high_score
+    load_high_scores, save_high_scores, is_high_score, add_high_score,
+    draw_rockets, draw_invulnerability
 )
 
 # Initialize Pygame
@@ -31,6 +35,23 @@ def main():
     
     # Load spritesheets
     script_dir = os.path.dirname(__file__)
+    # Load background image, scale preserving aspect ratio to cover window, then crop
+    background = None
+    try:
+        bg_path = os.path.join(script_dir, "images", "pixel-starfield.png")
+        bg_img = pygame.image.load(bg_path).convert()
+        src_w, src_h = bg_img.get_width(), bg_img.get_height()
+        # Scale factor to cover the window entirely while preserving aspect ratio
+        scale = max(WINDOW_WIDTH / src_w, WINDOW_HEIGHT / src_h)
+        new_w, new_h = int(src_w * scale), int(src_h * scale)
+        scaled = pygame.transform.smoothscale(bg_img, (new_w, new_h))
+        # Create a window-sized surface and blit scaled image centered (cropped)
+        background = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+        offset_x = (WINDOW_WIDTH - new_w) // 2
+        offset_y = (WINDOW_HEIGHT - new_h) // 2
+        background.blit(scaled, (offset_x, offset_y))
+    except Exception as e:
+        print(f"Warning: failed to load background image: {e}. Using solid fill.")
     cols, rows = 6, 4
     sprite_width, sprite_height = 96, 96
     sprite_static_path = os.path.join(script_dir, "sprite-sheets", "spaceship-static_spritesheet-96px-6x4.png")
@@ -119,11 +140,15 @@ def main():
         y=WINDOW_HEIGHT // 2,
     )
 
+    # Load power-up sprites
+    powerup_sprites = load_powerup_sprites()
+    
     # Sprite groups
     all_sprites = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
     asteroids = pygame.sprite.Group()
     explosions = pygame.sprite.Group()
+    powerups = pygame.sprite.Group()
 
     all_sprites.add(spaceship)
 
@@ -219,7 +244,7 @@ def main():
                 if entering_name:
                     if event.key == pygame.K_RETURN:
                         if player_name.strip():
-                            high_scores = add_high_score(player_name.strip(), score, high_scores)
+                            high_scores = add_high_score(player_name.strip(), score, current_level, high_scores)
                             save_high_scores(high_scores)
                         entering_name = False
                         player_name = ""
@@ -232,6 +257,11 @@ def main():
                     if bullet:
                         bullets.add(bullet)
                         all_sprites.add(bullet)
+                elif event.key == pygame.K_b and not game_over and game_started:
+                    rocket = spaceship.fire_rocket()
+                    if rocket:
+                        bullets.add(rocket)
+                        all_sprites.add(rocket)
                 elif event.key == pygame.K_p:
                     if not game_started:
                         game_started = True
@@ -248,6 +278,7 @@ def main():
                         bullets.empty()
                         asteroids.empty()
                         explosions.empty()
+                        powerups.empty()
                         
                         initial_asteroids, max_asteroids, total_asteroids, spawn_interval_seconds = get_level_params(current_level)
                         spawn_interval_frames = int(spawn_interval_seconds * FPS)
@@ -281,14 +312,20 @@ def main():
         
         # Show start screen if game hasn't started
         if not game_started:
-            screen.fill(BLACK)
+            if background:
+                screen.blit(background, (0, 0))
+            else:
+                screen.fill(BLACK)
             draw_start_screen(screen)
             pygame.display.flip()
             continue
         
         # Skip updates if game over
         if game_over:
-            screen.fill(BLACK)
+            if background:
+                screen.blit(background, (0, 0))
+            else:
+                screen.fill(BLACK)
             draw_game_over(screen, score, high_scores, entering_name, player_name)
             pygame.display.flip()
             continue
@@ -305,6 +342,23 @@ def main():
                 score += 10
                 asteroids_destroyed_this_level += 1
                 create_explosion(asteroid.x, asteroid.y, asteroid.rotation, asteroid.rotation_speed, asteroid.vx, asteroid.vy)
+                
+                # Randomly spawn a power-up when asteroid is destroyed
+                if random.random() < POWERUP_SPAWN_CHANCE:
+                    roll = random.random()
+                    if roll < HEALTH_POWERUP_WEIGHT:
+                        powerup_type = PowerUp.HEALTH
+                    elif roll < HEALTH_POWERUP_WEIGHT + INVULNERABILITY_POWERUP_WEIGHT:
+                        powerup_type = PowerUp.INVULNERABILITY
+                    elif roll < HEALTH_POWERUP_WEIGHT + INVULNERABILITY_POWERUP_WEIGHT + ROCKETS_POWERUP_WEIGHT:
+                        powerup_type = PowerUp.ROCKETS
+                    else:
+                        powerup_type = PowerUp.SHIELDS  # Remaining weight
+                    
+                    powerup_sprite = powerup_sprites[powerup_type]
+                    powerup = PowerUp(asteroid.x, asteroid.y, powerup_type, powerup_sprite)
+                    powerups.add(powerup)
+                    all_sprites.add(powerup)
                 
                 # Spawn child asteroids if this is a parent asteroid and level >= 3
                 if asteroid.spawn_children and asteroid.scale == 1.0 and current_level >= 3:
@@ -354,6 +408,23 @@ def main():
         if not spaceship.is_exploding and spaceship.spawn_shield <= 0:
             for asteroid in pygame.sprite.spritecollide(spaceship, asteroids, False, pygame.sprite.collide_circle):
                 spaceship.take_damage(asteroid)
+        
+        # Power-up vs spaceship collisions
+        for powerup in pygame.sprite.spritecollide(spaceship, powerups, True):
+            if powerup.power_type == PowerUp.HEALTH:
+                # Increase max health (up to 6) and refill health
+                spaceship.max_health = min(spaceship.max_health + 1, 6)
+                spaceship.health = spaceship.max_health
+            elif powerup.power_type == PowerUp.SHIELDS:
+                # Refill health to max (only if not already at max)
+                if spaceship.health < spaceship.max_health:
+                    spaceship.health = spaceship.max_health
+            elif powerup.power_type == PowerUp.INVULNERABILITY:
+                # Grant invulnerability
+                spaceship.invulnerability_time = int(INVULNERABILITY_DURATION * FPS)
+            elif powerup.power_type == PowerUp.ROCKETS:
+                # Add rockets
+                spaceship.rockets += NUM_ROCKETS_PER_PICKUP
 
         # Maintain asteroid population based on level
         spawn_timer += 1
@@ -372,13 +443,21 @@ def main():
                 player_name = ""
         
         # Draw
-        screen.fill(BLACK)
+        if background:
+            screen.blit(background, (0, 0))
+        else:
+            screen.fill(BLACK)
         bullets.draw(screen)
         asteroids.draw(screen)
         explosions.draw(screen)
+        powerups.draw(screen)
         if spaceship in all_sprites:
             spaceship.draw(screen)
-        draw_health(screen, spaceship.health if spaceship in all_sprites else 0, max_segments=3)
+        draw_health(screen, spaceship.health if spaceship in all_sprites else 0, max_segments=spaceship.max_health if spaceship in all_sprites else 3)
+        if spaceship in all_sprites and spaceship.rockets > 0:
+            draw_rockets(screen, spaceship.rockets)
+        if spaceship in all_sprites and spaceship.invulnerability_time > 0:
+            draw_invulnerability(screen, spaceship.invulnerability_time, fps=FPS)
         draw_score(screen, score)
         draw_level(screen, current_level)
 

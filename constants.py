@@ -5,6 +5,7 @@ WINDOW_HEIGHT = 900
 FPS = 60
 BULLET_SPEED = 12
 BULLET_LIFETIME = 90  # frames
+SHIP_DRIFT_DECAY = 0.99  # Ship drift slowdown when not thrusting (closer to 1.0 = longer drift, closer to 0.0 = stops quickly)
 ASTEROID_MIN_SPEED = 1.0
 ASTEROID_MAX_SPEED = 3.0
 ASTEROID_ROTATION_RANGE = (-3.0, 3.0)
@@ -18,6 +19,21 @@ LEVEL_PROGRESSION_INITIAL = 1  # Added to initial asteroids per level
 LEVEL_PROGRESSION_MAX = 1  # Added to max on screen per level
 LEVEL_PROGRESSION_TOTAL = 1  # Added to total asteroids per level
 LEVEL_PROGRESSION_SPAWN_REDUCTION = 0.2  # Seconds reduced from spawn interval per level
+
+# Power-up Constants
+MAX_SHIELDS = 6  # Maximum shield bars the spaceship can have
+INVULNERABILITY_DURATION = 5  # Seconds of invulnerability
+NUM_ROCKETS_PER_PICKUP = 3  # Rockets given per power-up pickup
+POWERUP_SPEED = 2.0  # Speed at which power-ups float down
+
+# Power-up Spawn Chances (when asteroid is destroyed)
+# First roll: chance that any power-up drops
+POWERUP_SPAWN_CHANCE = 0.20  # 20% chance a destroyed asteroid drops a power-up
+# Second roll (weights must sum to 1.0) to pick which power-up drops
+HEALTH_POWERUP_WEIGHT = 0.10
+INVULNERABILITY_POWERUP_WEIGHT = 0.20
+ROCKETS_POWERUP_WEIGHT = 0.20
+SHIELDS_POWERUP_WEIGHT = 0.50
 
 # Colors
 BLACK = (0, 0, 0)

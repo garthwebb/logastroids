@@ -1,7 +1,7 @@
 """UI drawing functions and high score management."""
 import pygame
 import json
-from constants import WINDOW_WIDTH, WINDOW_HEIGHT, WHITE
+from constants import WINDOW_WIDTH, WINDOW_HEIGHT, WHITE, MAX_SHIELDS
 
 
 def draw_health(surface, health, max_segments=3, position=(10, 10), size=(30, 10), gap=6):
@@ -12,6 +12,32 @@ def draw_health(surface, health, max_segments=3, position=(10, 10), size=(30, 10
         color = (0, 220, 120) if i < health else (70, 70, 70)
         pygame.draw.rect(surface, color, (x + i * (w + gap), y, w, h), border_radius=3)
         pygame.draw.rect(surface, (20, 20, 20), (x + i * (w + gap), y, w, h), width=1, border_radius=3)
+
+
+def draw_shields(surface, shields, max_shields=MAX_SHIELDS, position=(10, 25), size=(30, 10), gap=6):
+    """Draw shield bars."""
+    x, y = position
+    w, h = size
+    for i in range(max_shields):
+        color = (100, 200, 255) if i < shields else (40, 40, 80)
+        pygame.draw.rect(surface, color, (x + i * (w + gap), y, w, h), border_radius=3)
+        pygame.draw.rect(surface, (20, 20, 20), (x + i * (w + gap), y, w, h), width=1, border_radius=3)
+
+
+def draw_rockets(surface, rockets, position=(10, 40)):
+    """Draw rocket count."""
+    font = pygame.font.Font(None, 28)
+    text = font.render(f"Rockets: {rockets}", True, (255, 165, 0))
+    surface.blit(text, position)
+
+
+def draw_invulnerability(surface, invulnerability_time, fps=60, position=(10, 60)):
+    """Draw invulnerability timer."""
+    if invulnerability_time > 0:
+        seconds = invulnerability_time / fps
+        font = pygame.font.Font(None, 28)
+        text = font.render(f"Invulnerable: {seconds:.1f}s", True, (255, 100, 255))
+        surface.blit(text, position)
 
 
 def draw_score(surface, score, position=None):
@@ -99,9 +125,9 @@ def is_high_score(score, high_scores, max_entries=10):
     return score > min(s['score'] for s in high_scores)
 
 
-def add_high_score(name, score, high_scores, max_entries=10):
+def add_high_score(name, score, level, high_scores, max_entries=10):
     """Add a new high score and return updated list."""
-    high_scores.append({'name': name, 'score': score})
+    high_scores.append({'name': name, 'score': score, 'level': level})
     high_scores.sort(key=lambda x: x['score'], reverse=True)
     return high_scores[:max_entries]
 
@@ -123,7 +149,10 @@ def draw_high_scores(surface, high_scores, y_start=250):
     for i, entry in enumerate(high_scores[:10]):
         rank = f"{i + 1}."
         name = entry['name'][:12]  # Ensure max 12 characters
-        score_val = str(entry['score'])
+        score_val = entry['score']
+        # Get level, defaulting to 1 for old entries without level data
+        level = entry.get('level', 1)
+        score_text = f"{score_val} (Lvl {level})"
         
         # Draw rank and name on left
         left_text = f"{rank} {name}"
@@ -131,7 +160,7 @@ def draw_high_scores(surface, high_scores, y_start=250):
         left_x = padding
         
         # Draw score on right
-        right_surface = score_font.render(score_val, True, WHITE)
+        right_surface = score_font.render(score_text, True, WHITE)
         right_x = WINDOW_WIDTH - padding - right_surface.get_width()
         
         # Calculate dots width
