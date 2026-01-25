@@ -66,7 +66,7 @@ def main():
     source_filename = sys.argv[1]
     
     # Set defaults
-    output_filename = f"{Path(source_filename).stem}_spritesheet.png"
+    output_filename = f"{Path(source_filename).stem}_spritesheet-96px-6x4.png"
     sprite_size = 96
     angle_increment = 15
     
