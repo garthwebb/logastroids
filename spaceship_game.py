@@ -15,7 +15,7 @@ from constants import (
     POWERUP_SPAWN_CHANCE, HEALTH_POWERUP_WEIGHT, INVULNERABILITY_POWERUP_WEIGHT,
     ROCKETS_POWERUP_WEIGHT, SHIELDS_POWERUP_WEIGHT
 )
-from sprites import Spaceship, Bullet, Asteroid, Explosion, PowerUp
+from sprites import Spaceship, Bullet, Rocket, Asteroid, Explosion, PowerUp
 from utils import load_spritesheet, load_powerup_sprites
 from ui import (
     draw_health, draw_score, draw_level, draw_game_over, draw_start_screen,
@@ -126,6 +126,18 @@ def main():
         for name in broken_sheet_names
     ]
 
+    # Load rocket sprite sheets (4 frames of animation, each with 24 rotations)
+    rocket_sheet_names = [
+        "rocket-1_spritesheet-96px-6x4.png",
+        "rocket-2_spritesheet-96px-6x4.png",
+        "rocket-3_spritesheet-96px-6x4.png",
+        "rocket-4_spritesheet-96px-6x4.png",
+    ]
+    rocket_sheets = [
+        load_spritesheet(os.path.join(script_dir, "sprite-sheets", name), 6, 4, 96, 96)
+        for name in rocket_sheet_names
+    ]
+
     # Create spaceship
     spaceship = Spaceship(
         sprites_static=sprites_static,
@@ -136,6 +148,7 @@ def main():
         fire_thrust_right=sprites_fire_thrust_right,
         fire_static_left=sprites_fire_static_left,
         fire_static_right=sprites_fire_static_right,
+        rocket_sheets=rocket_sheets,
         x=WINDOW_WIDTH // 2,
         y=WINDOW_HEIGHT // 2,
     )
@@ -146,6 +159,7 @@ def main():
     # Sprite groups
     all_sprites = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
+    rockets = pygame.sprite.Group()
     asteroids = pygame.sprite.Group()
     explosions = pygame.sprite.Group()
     powerups = pygame.sprite.Group()
@@ -260,7 +274,7 @@ def main():
                 elif event.key == pygame.K_b and not game_over and game_started:
                     rocket = spaceship.fire_rocket()
                     if rocket:
-                        bullets.add(rocket)
+                        rockets.add(rocket)
                         all_sprites.add(rocket)
                 elif event.key == pygame.K_p:
                     if not game_started:
@@ -276,6 +290,7 @@ def main():
                         
                         all_sprites.empty()
                         bullets.empty()
+                        rockets.empty()
                         asteroids.empty()
                         explosions.empty()
                         powerups.empty()
@@ -292,6 +307,7 @@ def main():
                             fire_thrust_right=sprites_fire_thrust_right,
                             fire_static_left=sprites_fire_static_left,
                             fire_static_right=sprites_fire_static_right,
+                            rocket_sheets=rocket_sheets,
                             x=WINDOW_WIDTH // 2,
                             y=WINDOW_HEIGHT // 2,
                         )
@@ -336,7 +352,7 @@ def main():
 
         # Bullet vs asteroid collisions
         for asteroid in pygame.sprite.groupcollide(asteroids, bullets, False, True):
-            alive = asteroid.advance_stage()
+            alive = asteroid.take_damage(1)
             score += 1
             if not alive:
                 score += 10
@@ -387,6 +403,71 @@ def main():
                     spawn_asteroid()
                     asteroids_spawned_this_level += 1
                     spawn_timer = 0
+        
+        # Rocket vs asteroid collisions (using circle-based collision for smaller hitbox)
+        for rocket in list(rockets):
+            if rocket not in all_sprites:
+                continue
+            for asteroid in asteroids:
+                # Circle-based collision between rocket and asteroid
+                dx = rocket.x - asteroid.x
+                dy = rocket.y - asteroid.y
+                distance = math.sqrt(dx * dx + dy * dy)
+                if distance < (rocket.radius + asteroid.radius):
+                    # Collision! Rocket does 4 damage (destroys in one hit)
+                    alive = asteroid.take_damage(4)
+                    score += 1
+                    rocket.kill()
+                    if not alive:
+                        score += 10
+                        asteroids_destroyed_this_level += 1
+                        create_explosion(asteroid.x, asteroid.y, asteroid.rotation, asteroid.rotation_speed, asteroid.vx, asteroid.vy)
+                        
+                        # Randomly spawn a power-up when asteroid is destroyed
+                        if random.random() < POWERUP_SPAWN_CHANCE:
+                            roll = random.random()
+                            if roll < HEALTH_POWERUP_WEIGHT:
+                                powerup_type = PowerUp.HEALTH
+                            elif roll < HEALTH_POWERUP_WEIGHT + INVULNERABILITY_POWERUP_WEIGHT:
+                                powerup_type = PowerUp.INVULNERABILITY
+                            elif roll < HEALTH_POWERUP_WEIGHT + INVULNERABILITY_POWERUP_WEIGHT + ROCKETS_POWERUP_WEIGHT:
+                                powerup_type = PowerUp.ROCKETS
+                            else:
+                                powerup_type = PowerUp.SHIELDS  # Remaining weight
+                            
+                            powerup_sprite = powerup_sprites[powerup_type]
+                            powerup = PowerUp(asteroid.x, asteroid.y, powerup_type, powerup_sprite)
+                            powerups.add(powerup)
+                            all_sprites.add(powerup)
+                        
+                        # Spawn child asteroids if this is a parent asteroid and level >= 3
+                        if asteroid.spawn_children and asteroid.scale == 1.0 and current_level >= 3:
+                            child_scale = 0.5
+                            for i in range(3):
+                                angle = (i * 120) * math.pi / 180
+                                child_speed = 2.0
+                                child_vx = asteroid.vx + math.cos(angle) * child_speed
+                                child_vy = asteroid.vy + math.sin(angle) * child_speed
+                                
+                                offset_dist = 30
+                                child_x = asteroid.x + math.cos(angle) * offset_dist
+                                child_y = asteroid.y + math.sin(angle) * offset_dist
+                                
+                                child_asteroid = Asteroid(asteroid_stage_sheets, 2, child_x, child_y, child_vx, child_vy, 
+                                                         random.uniform(0, 360), random.uniform(*ASTEROID_ROTATION_RANGE),
+                                                         scale=child_scale, spawn_children=False)
+                                asteroids.add(child_asteroid)
+                                all_sprites.add(child_asteroid)
+                        
+                        asteroid.kill()
+                        
+                        # Spawn a new asteroid immediately when one is destroyed (if limits allow)
+                        if (len(asteroids) < max_asteroids and 
+                            asteroids_spawned_this_level < total_asteroids):
+                            spawn_asteroid()
+                            asteroids_spawned_this_level += 1
+                            spawn_timer = 0
+                    break
         
         # Check for level completion
         if (asteroids_destroyed_this_level >= total_asteroids and 
@@ -448,6 +529,7 @@ def main():
         else:
             screen.fill(BLACK)
         bullets.draw(screen)
+        rockets.draw(screen)
         asteroids.draw(screen)
         explosions.draw(screen)
         powerups.draw(screen)

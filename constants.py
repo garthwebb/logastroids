@@ -25,6 +25,9 @@ MAX_SHIELDS = 6  # Maximum shield bars the spaceship can have
 INVULNERABILITY_DURATION = 5  # Seconds of invulnerability
 NUM_ROCKETS_PER_PICKUP = 3  # Rockets given per power-up pickup
 POWERUP_SPEED = 2.0  # Speed at which power-ups float down
+UNLIMITED_ROCKETS = False  # If True, rockets can be fired infinitely; if False, requires power-up pickup
+ROCKET_SCALE = 0.75  # Scale factor for rocket sprite size (1.0 = original 48px, 1.5 = 72px)
+ROCKET_SPEED_MULTIPLIER = 1.0  # Speed multiplier relative to BULLET_SPEED (was 1.5)
 
 # Power-up Spawn Chances (when asteroid is destroyed)
 # First roll: chance that any power-up drops

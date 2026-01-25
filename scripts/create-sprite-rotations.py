@@ -57,26 +57,36 @@ def create_rotational_spritesheet(source_path, output_path, sprite_size, angle_i
 # --- Configuration ---
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python sprite-sheet-gen.py <image_filename> [output_filename] [sprite_size] [angle_increment]")
-        print("\nExample:")
-        print("  python sprite-sheet-gen.py spaceship.png")
-        print("  python sprite-sheet-gen.py spaceship.png my_output.png 96 15")
+        print("Usage: python create-sprite-rotations.py <image_filename> [sprite_size] [angle_increment] [output_filename]")
+        print("\nArguments:")
+        print("  image_filename    - Source PNG image to rotate")
+        print("  sprite_size       - Size in pixels (default: 96)")
+        print("  angle_increment   - Degrees between frames (default: 15)")
+        print("  output_filename   - Custom output path (optional)")
+        print("\nExamples:")
+        print("  python create-sprite-rotations.py spaceship.png")
+        print("  python create-sprite-rotations.py rocket.png 48 15")
+        print("  python create-sprite-rotations.py ship.png 64 10 my_output.png")
         sys.exit(1)
     
     source_filename = sys.argv[1]
     
     # Set defaults
-    output_filename = f"{Path(source_filename).stem}_spritesheet-96px-6x4.png"
     sprite_size = 96
     angle_increment = 15
+    output_filename = None
     
     # Override with command-line arguments if provided
     if len(sys.argv) > 2:
-        output_filename = sys.argv[2]
+        sprite_size = int(sys.argv[2])
     if len(sys.argv) > 3:
-        sprite_size = int(sys.argv[3])
+        angle_increment = int(sys.argv[3])
     if len(sys.argv) > 4:
-        angle_increment = int(sys.argv[4])
+        output_filename = sys.argv[4]
+    
+    # Generate default output filename with actual sprite_size
+    if output_filename is None:
+        output_filename = f"{Path(source_filename).stem}_spritesheet-{sprite_size}px-6x4.png"
     
     create_rotational_spritesheet(
         source_path=source_filename,

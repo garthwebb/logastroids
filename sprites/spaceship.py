@@ -1,8 +1,9 @@
 """Spaceship sprite class."""
 import pygame
 import math
-from constants import WINDOW_WIDTH, WINDOW_HEIGHT, BULLET_SPEED, SHIP_DRIFT_DECAY, MAX_SHIELDS
+from constants import WINDOW_WIDTH, WINDOW_HEIGHT, BULLET_SPEED, SHIP_DRIFT_DECAY, MAX_SHIELDS, UNLIMITED_ROCKETS, ROCKET_SPEED_MULTIPLIER
 from sprites.bullet import Bullet
+from sprites.rocket import Rocket
 
 
 class Spaceship(pygame.sprite.Sprite):
@@ -11,6 +12,7 @@ class Spaceship(pygame.sprite.Sprite):
     def __init__(self, *groups,
                  sprites_static=None, sprites_thrust=None, damage_sprites=None, shield_sprites=None,
                  fire_thrust_left=None, fire_thrust_right=None, fire_static_left=None, fire_static_right=None,
+                 rocket_sheets=None,
                  x=None, y=None, spawn_shield=120, sprite_radius=32):
         super().__init__(*groups)
         self.sprites_static = sprites_static or []  # List of rotated sprite frames without thrust
@@ -22,6 +24,7 @@ class Spaceship(pygame.sprite.Sprite):
         self.sprites_fire_static_right = fire_static_right or []
         self.damage_sprites = damage_sprites or []  # List of damage stage sprite sheets
         self.shield_sprites = shield_sprites or []  # List of shield animation frames
+        self.rocket_sheets = rocket_sheets or []  # List of 4 rocket animation sheets
         self.current_frame = 0
         # Provide a safe placeholder if assets are missing
         if self.sprites_static:
@@ -222,12 +225,17 @@ class Spaceship(pygame.sprite.Sprite):
         return bullet
     
     def fire_rocket(self):
-        """Create a rocket traveling in the ship's facing direction. Consumes a rocket."""
-        if self.rockets <= 0 or self.fire_cooldown > 0 or self.is_exploding:
+        """Create a rocket traveling in the ship's facing direction. Consumes a rocket (unless UNLIMITED_ROCKETS)."""
+        # Check if we can fire: need rockets or unlimited mode enabled
+        if not UNLIMITED_ROCKETS and self.rockets <= 0:
             return None
-        self.rockets -= 1
-        # For now, rockets behave like regular bullets but faster
-        # This could be enhanced later for different behavior
+        if self.fire_cooldown > 0 or self.is_exploding:
+            return None
+        
+        # Consume a rocket if not in unlimited mode
+        if not UNLIMITED_ROCKETS:
+            self.rockets -= 1
+        
         frame_count = len(self.sprites_static) if self.sprites_static else 0
         if frame_count <= 0:
             frame_count = 24
@@ -243,8 +251,8 @@ class Spaceship(pygame.sprite.Sprite):
         side_mult = 1 if self.fire_side == 'left' else -1
         origin_x = self.rect.centerx + dir_x * 20 + perp_x * gun_offset * side_mult
         origin_y = self.rect.centery + dir_y * 20 + perp_y * gun_offset * side_mult
-        # Rockets are 1.5x faster than regular bullets
-        rocket = Bullet(origin_x, origin_y, dir_x * BULLET_SPEED * 1.5, dir_y * BULLET_SPEED * 1.5)
+        # Rockets use configurable speed multiplier
+        rocket = Rocket(origin_x, origin_y, dir_x * BULLET_SPEED * ROCKET_SPEED_MULTIPLIER, dir_y * BULLET_SPEED * ROCKET_SPEED_MULTIPLIER, self.rocket_sheets)
         self.fire_cooldown = 8
         self.firing_timer = self.firing_duration
         self.fire_side = 'right' if self.fire_side == 'left' else 'left'

@@ -18,6 +18,7 @@ class Asteroid(pygame.sprite.Sprite):
         self.current_frame = 0
         self.scale = scale  # Scale factor for this asteroid (1.0 = normal size)
         self.spawn_children = spawn_children  # Whether to spawn child asteroids when destroyed
+        self.hit_points = 4  # Each asteroid has 4 health (one per stage)
         
         # Load and scale the image
         original_image = self.sprites[self.current_frame]
@@ -82,4 +83,16 @@ class Asteroid(pygame.sprite.Sprite):
             self.image = pygame.transform.scale(original_image, new_size)
         else:
             self.image = original_image
+        return True
+
+    def take_damage(self, damage):
+        """Apply damage to the asteroid. Returns True if still alive, False if destroyed."""
+        self.hit_points -= damage
+        if self.hit_points <= 0:
+            return False
+        # Apply stage advancement for each hit point lost
+        # Damage of 1 = one stage, damage of 4 = destroy immediately
+        for _ in range(damage):
+            if not self.advance_stage():
+                return False
         return True
