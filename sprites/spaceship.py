@@ -92,6 +92,20 @@ class Spaceship(pygame.sprite.Sprite):
         """Update spaceship position and rotation"""
         # If exploding, skip movement/control updates but handle explosion animation
         if self.is_exploding:
+            # Continue drifting with current velocity during explosion
+            self.x += self.velocity_x
+            self.y += self.velocity_y
+            
+            # Screen wrapping
+            if self.x < 0:
+                self.x = WINDOW_WIDTH
+            elif self.x > WINDOW_WIDTH:
+                self.x = 0
+            if self.y < 0:
+                self.y = WINDOW_HEIGHT
+            elif self.y > WINDOW_HEIGHT:
+                self.y = 0
+            
             alive = self.update_explosion()
             if alive:
                 self._update_sprite()

@@ -165,6 +165,8 @@ def main():
     spawn_timer = 0
     respawn_timer = 0
     RESPAWN_DELAY = 180
+    game_over_delay_timer = 0
+    GAME_OVER_DELAY = int(2 * FPS)  # 2 seconds at 60 FPS = 120 frames
     spaceship_destroyed_pos = None
     score = 0
     game_over = False
@@ -214,6 +216,7 @@ def main():
                         score = 0
                         entering_name = False
                         player_name = ""
+                        game_over_delay_timer = 0
                         
                         all_sprites.empty()
                         bullets.empty()
@@ -441,11 +444,18 @@ def main():
             spawn_timer = 0
         
         # Handle spaceship destruction and game over
-        if spaceship not in all_sprites and respawn_timer == 0:
-            game_over = True
-            if is_high_score(score, high_scores):
-                entering_name = True
-                player_name = ""
+        if spaceship not in all_sprites:
+            if game_over_delay_timer == 0:
+                # Ship just died, start the delay timer
+                game_over_delay_timer = GAME_OVER_DELAY
+            else:
+                game_over_delay_timer -= 1
+                if game_over_delay_timer == 0 and respawn_timer == 0:
+                    # Delay is over, show game over screen
+                    game_over = True
+                    if is_high_score(score, high_scores):
+                        entering_name = True
+                        player_name = ""
         
         # Draw
         background_manager.draw(screen, BLACK)
