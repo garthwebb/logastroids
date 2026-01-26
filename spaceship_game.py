@@ -98,11 +98,6 @@ def main():
     damage_sprites = []
     for name in damage_sheet_names:
         damage_sprites.append(load_spritesheet(os.path.join(script_dir, "sprite-sheets", name), cols, rows, sprite_width, sprite_height))
-    if not damage_sprites:
-        # Ensure we always have something to animate
-        placeholder = pygame.Surface((sprite_width, sprite_height), pygame.SRCALPHA)
-        placeholder.fill((255, 128, 0, 220))
-        damage_sprites = [[placeholder.copy() for _ in range(cols * rows)]]
 
     # Asteroid stages and explosion frames
     asteroid_stage_names = [
