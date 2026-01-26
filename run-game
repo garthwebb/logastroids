@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
+VENV_DIR="venv"
+REQUIREMENTS_FILE="requirements.txt"
+INSTALL_TIMESTAMP=".requirements_installed"
+
+# Create virtual environment if it doesn't exist
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv "$VENV_DIR"
+fi
+
+# Activate virtual environment
+source "$VENV_DIR/bin/activate"
+
+# Check if we need to install/reinstall requirements
+SHOULD_INSTALL=false
+
+if [ ! -f "$INSTALL_TIMESTAMP" ]; then
+    # No timestamp file, need to install
+    SHOULD_INSTALL=true
+    echo "No installation record found, installing requirements..."
+elif [ "$REQUIREMENTS_FILE" -nt "$INSTALL_TIMESTAMP" ]; then
+    # requirements.txt is newer than timestamp file
+    SHOULD_INSTALL=true
+    echo "Requirements file has changed, reinstalling..."
+fi
+
+if [ "$SHOULD_INSTALL" = true ]; then
+    pip install -r "$REQUIREMENTS_FILE"
+    # Update timestamp file to match requirements.txt modification time
+    touch -r "$REQUIREMENTS_FILE" "$INSTALL_TIMESTAMP"
+    echo "Requirements installed successfully."
+fi
+
+# Run the game
+echo "Starting game..."
+python spaceship_game.py
