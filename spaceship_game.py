@@ -34,6 +34,7 @@ from ui import (
     load_high_scores, save_high_scores, is_high_score, add_high_score,
     draw_rockets, draw_invulnerability
 )
+from background_manager import BackgroundManager
 
 # Initialize Pygame
 pygame.init()
@@ -45,25 +46,16 @@ def main():
     pygame.display.set_caption("Asteroid-Style Spaceship Game")
     clock = pygame.time.Clock()
     
+    # Initialize background manager
+    background_manager = BackgroundManager(
+        WINDOW_WIDTH, 
+        WINDOW_HEIGHT,
+        backgrounds=["pixel-starfield.png"],  # Can add more backgrounds here
+        levels_per_background=5
+    )
+    
     # Load spritesheets
     script_dir = os.path.dirname(__file__)
-    # Load background image, scale preserving aspect ratio to cover window, then crop
-    background = None
-    try:
-        bg_path = os.path.join(script_dir, "images", "pixel-starfield.png")
-        bg_img = pygame.image.load(bg_path).convert()
-        src_w, src_h = bg_img.get_width(), bg_img.get_height()
-        # Scale factor to cover the window entirely while preserving aspect ratio
-        scale = max(WINDOW_WIDTH / src_w, WINDOW_HEIGHT / src_h)
-        new_w, new_h = int(src_w * scale), int(src_h * scale)
-        scaled = pygame.transform.smoothscale(bg_img, (new_w, new_h))
-        # Create a window-sized surface and blit scaled image centered (cropped)
-        background = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
-        offset_x = (WINDOW_WIDTH - new_w) // 2
-        offset_y = (WINDOW_HEIGHT - new_h) // 2
-        background.blit(scaled, (offset_x, offset_y))
-    except Exception as e:
-        print(f"Warning: failed to load background image: {e}. Using solid fill.")
     # Load sprite sheets using declarative specs
     ship_sheets = load_specs_dict(SHIP_SPECS)
     fire_sheets = load_specs_dict(FIRE_SPECS)
@@ -263,20 +255,14 @@ def main():
         
         # Show start screen if game hasn't started
         if not game_started:
-            if background:
-                screen.blit(background, (0, 0))
-            else:
-                screen.fill(BLACK)
+            background_manager.draw(screen, BLACK)
             draw_start_screen(screen)
             pygame.display.flip()
             continue
         
         # Skip updates if game over
         if game_over:
-            if background:
-                screen.blit(background, (0, 0))
-            else:
-                screen.fill(BLACK)
+            background_manager.draw(screen, BLACK)
             draw_game_over(screen, score, high_scores, entering_name, player_name)
             pygame.display.flip()
             continue
@@ -412,6 +398,9 @@ def main():
             asteroids_spawned_this_level = 0
             asteroids_destroyed_this_level = 0
             
+            # Update background for new level
+            background_manager.update_background_for_level(current_level)
+            
             initial_asteroids, max_asteroids, total_asteroids, spawn_interval_seconds = get_level_params(current_level)
             spawn_interval_frames = int(spawn_interval_seconds * FPS)
             
@@ -459,10 +448,7 @@ def main():
                 player_name = ""
         
         # Draw
-        if background:
-            screen.blit(background, (0, 0))
-        else:
-            screen.fill(BLACK)
+        background_manager.draw(screen, BLACK)
         bullets.draw(screen)
         rockets.draw(screen)
         asteroids.draw(screen)
