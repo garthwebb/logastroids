@@ -16,7 +16,19 @@ from constants import (
     ROCKETS_POWERUP_WEIGHT, SHIELDS_POWERUP_WEIGHT
 )
 from sprites import Spaceship, Bullet, Rocket, Asteroid, Explosion, PowerUp
-from utils import load_spritesheet, load_powerup_sprites
+from utils import (
+    load_sheet,
+    load_specs_dict,
+    load_specs_list,
+    load_powerup_sprites,
+    SHIP_SPECS,
+    FIRE_SPECS,
+    SHIELD_SPEC,
+    DAMAGE_SPECS,
+    ASTEROID_STAGE_SPECS,
+    BROKEN_ASTEROID_SPECS,
+    ROCKET_SPECS,
+)
 from ui import (
     draw_health, draw_score, draw_level, draw_game_over, draw_start_screen,
     load_high_scores, save_high_scores, is_high_score, add_high_score,
@@ -52,97 +64,25 @@ def main():
         background.blit(scaled, (offset_x, offset_y))
     except Exception as e:
         print(f"Warning: failed to load background image: {e}. Using solid fill.")
-    cols, rows = 6, 4
-    sprite_width, sprite_height = 96, 96
-    sprite_static_path = os.path.join(script_dir, "sprite-sheets", "spaceship-static_spritesheet-96px-6x4.png")
-    sprite_thrust_path = os.path.join(script_dir, "sprite-sheets", "spaceship_spritesheet-96px-6x4.png")
-    sprites_static = load_spritesheet(sprite_static_path, cols, rows, sprite_width, sprite_height)
-    sprites_thrust = load_spritesheet(sprite_thrust_path, cols, rows, sprite_width, sprite_height)
-    if not sprites_static or not sprites_thrust:
-        print("Warning: spaceship sprites failed to load; using placeholders.")
-
-    # Load firing sprite variants (left/right for thrusting and static)
-    fire_thrust_left_path = os.path.join(script_dir, "sprite-sheets", "spaceship-fire-left_spritesheet-96px-6x4.png")
-    fire_thrust_right_path = os.path.join(script_dir, "sprite-sheets", "spaceship-fire-right_spritesheet-96px-6x4.png")
-    fire_static_left_path = os.path.join(script_dir, "sprite-sheets", "spaceship-static-fire-left_spritesheet-96px-6x4.png")
-    fire_static_right_path = os.path.join(script_dir, "sprite-sheets", "spaceship-static-fire-right_spritesheet-96px-6x4.png")
-    sprites_fire_thrust_left = load_spritesheet(fire_thrust_left_path, cols, rows, sprite_width, sprite_height)
-    sprites_fire_thrust_right = load_spritesheet(fire_thrust_right_path, cols, rows, sprite_width, sprite_height)
-    sprites_fire_static_left = load_spritesheet(fire_static_left_path, cols, rows, sprite_width, sprite_height)
-    sprites_fire_static_right = load_spritesheet(fire_static_right_path, cols, rows, sprite_width, sprite_height)
-    
-    # Load shield animation
-    shield_path = os.path.join(script_dir, "sprite-sheets", "shield-96px-3x1.png")
-    shield_sprites = load_spritesheet(shield_path, 3, 1, sprite_width, sprite_height)
-    if not shield_sprites:
-        print("Warning: shield sprites failed to load; using placeholder.")
-        placeholder = pygame.Surface((sprite_width, sprite_height), pygame.SRCALPHA)
-        placeholder.fill((100, 200, 255, 150))
-        shield_sprites = [placeholder.copy() for _ in range(3)]
-
-    # Load spaceship damage progression sprites
-    damage_sheet_names = [
-        "spaceship-damaged-1_spritesheet-96px-6x4.png",
-        "spaceship-damaged-2_spritesheet-96px-6x4.png",
-        "spaceship-damaged-3_spritesheet-96px-6x4.png",
-        "spaceship-damaged-4_spritesheet-96px-6x4.png",
-        "spaceship-damaged-5_spritesheet-96px-6x4.png",
-        "spaceship-damaged-6_spritesheet-96px-6x4.png",
-        "spaceship-damaged-7_spritesheet-96px-6x4.png",
-        "spaceship-damaged-8_spritesheet-96px-6x4.png",
-        "spaceship-damaged-9_spritesheet-96px-6x4.png",
-        "spaceship-damaged-10_spritesheet-96px-6x4.png",
-        "spaceship-damaged-11_spritesheet-96px-6x4.png",
-        "spaceship-damaged-12_spritesheet-96px-6x4.png",
-    ]
-    damage_sprites = []
-    for name in damage_sheet_names:
-        damage_sprites.append(load_spritesheet(os.path.join(script_dir, "sprite-sheets", name), cols, rows, sprite_width, sprite_height))
-
-    # Asteroid stages and explosion frames
-    asteroid_stage_names = [
-        "icy-asteriod_spritesheet-96px-6x4.png",
-        "green-asteriod_spritesheet-96px-6x4.png",
-        "rocky-asteriod_spritesheet-96px-6x4.png",
-        "motlen-asteriod_spritesheet-96px-6x4.png",
-    ]
-    asteroid_stage_sheets = [
-        load_spritesheet(os.path.join(script_dir, "sprite-sheets", name), cols, rows, sprite_width, sprite_height)
-        for name in asteroid_stage_names
-    ]
-    broken_sheet_names = [
-        "broken-asteroid-1_spritesheet-96px-6x4.png",
-        "broken-asteroid-2_spritesheet-96px-6x4.png",
-        "broken-asteroid-3_spritesheet-96px-6x4.png",
-        "broken-asteroid-4_spritesheet-96px-6x4.png",
-    ]
-    broken_sheets = [
-        load_spritesheet(os.path.join(script_dir, "sprite-sheets", name), cols, rows, sprite_width, sprite_height)
-        for name in broken_sheet_names
-    ]
-
-    # Load rocket sprite sheets (4 frames of animation, each with 24 rotations)
-    rocket_sheet_names = [
-        "rocket-1_spritesheet-96px-6x4.png",
-        "rocket-2_spritesheet-96px-6x4.png",
-        "rocket-3_spritesheet-96px-6x4.png",
-        "rocket-4_spritesheet-96px-6x4.png",
-    ]
-    rocket_sheets = [
-        load_spritesheet(os.path.join(script_dir, "sprite-sheets", name), 6, 4, 96, 96)
-        for name in rocket_sheet_names
-    ]
+    # Load sprite sheets using declarative specs
+    ship_sheets = load_specs_dict(SHIP_SPECS)
+    fire_sheets = load_specs_dict(FIRE_SPECS)
+    shield_sprites = load_sheet(SHIELD_SPEC)
+    damage_sprites = load_specs_list(DAMAGE_SPECS)
+    asteroid_stage_sheets = load_specs_list(ASTEROID_STAGE_SPECS)
+    broken_sheets = load_specs_list(BROKEN_ASTEROID_SPECS)
+    rocket_sheets = load_specs_list(ROCKET_SPECS)
 
     # Create spaceship
     spaceship = Spaceship(
-        sprites_static=sprites_static,
-        sprites_thrust=sprites_thrust,
+        sprites_static=ship_sheets.get("static", []),
+        sprites_thrust=ship_sheets.get("thrust", []),
         damage_sprites=damage_sprites,
         shield_sprites=shield_sprites,
-        fire_thrust_left=sprites_fire_thrust_left,
-        fire_thrust_right=sprites_fire_thrust_right,
-        fire_static_left=sprites_fire_static_left,
-        fire_static_right=sprites_fire_static_right,
+        fire_thrust_left=fire_sheets.get("fire_thrust_left", []),
+        fire_thrust_right=fire_sheets.get("fire_thrust_right", []),
+        fire_static_left=fire_sheets.get("fire_static_left", []),
+        fire_static_right=fire_sheets.get("fire_static_right", []),
         rocket_sheets=rocket_sheets,
         x=WINDOW_WIDTH // 2,
         y=WINDOW_HEIGHT // 2,
@@ -294,14 +234,14 @@ def main():
                         spawn_interval_frames = int(spawn_interval_seconds * FPS)
                         
                         spaceship = Spaceship(
-                            sprites_static=sprites_static,
-                            sprites_thrust=sprites_thrust,
+                            sprites_static=ship_sheets.get("static", []),
+                            sprites_thrust=ship_sheets.get("thrust", []),
                             damage_sprites=damage_sprites,
                             shield_sprites=shield_sprites,
-                            fire_thrust_left=sprites_fire_thrust_left,
-                            fire_thrust_right=sprites_fire_thrust_right,
-                            fire_static_left=sprites_fire_static_left,
-                            fire_static_right=sprites_fire_static_right,
+                            fire_thrust_left=fire_sheets.get("fire_thrust_left", []),
+                            fire_thrust_right=fire_sheets.get("fire_thrust_right", []),
+                            fire_static_left=fire_sheets.get("fire_static_left", []),
+                            fire_static_right=fire_sheets.get("fire_static_right", []),
                             rocket_sheets=rocket_sheets,
                             x=WINDOW_WIDTH // 2,
                             y=WINDOW_HEIGHT // 2,
