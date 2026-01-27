@@ -10,6 +10,7 @@ _build/
 cmake/**/.generated/*
 cmake/**/CMake*
 out/
+venv/
 
 .DS_Store
 __pycache__
