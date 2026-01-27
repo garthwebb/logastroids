@@ -31,17 +31,17 @@ Special cases:
 ### Spaceship Sprites
 
 **Core Ship States:**
-- `spaceship-static_spritesheet-96px-6x4.png` - Spaceship at rest (no thrust)
+- `spaceship-static-96px-6x4.png` - Spaceship at rest (no thrust)
 - `spaceship-96px-6x4.png` - Spaceship with main thrust engaged
 
 **Firing Variants:**
-- `spaceship-fire-left_spritesheet-96px-6x4.png` - Firing left weapon with thrust
-- `spaceship-fire-right_spritesheet-96px-6x4.png` - Firing right weapon with thrust
-- `spaceship-static-fire-left_spritesheet-96px-6x4.png` - Firing left weapon, no thrust
-- `spaceship-static-fire-right_spritesheet-96px-6x4.png` - Firing right weapon, no thrust
+- `spaceship-fire-left-96px-6x4.png` - Firing left weapon with thrust
+- `spaceship-fire-right-96px-6x4.png` - Firing right weapon with thrust
+- `spaceship-static-fire-left-96px-6x4.png` - Firing left weapon, no thrust
+- `spaceship-static-fire-right-96px-6x4.png` - Firing right weapon, no thrust
 
 **Damage Progression (12 stages):**
-- `spaceship-damaged-1_spritesheet-96px-6x4.png` through `spaceship-damaged-12_spritesheet-96px-6x4.png`
+- `spaceship-damaged-1-96px-6x4.png` through `spaceship-damaged-12-96px-6x4.png`
 - Shows increasing damage levels as the ship takes hits
 - Higher numbers indicate more severe damage
 
@@ -54,19 +54,19 @@ Special cases:
 - `molten-asteroid-96px-6x4.png` - Stage 4: Molten asteroid
 
 **Broken Asteroid Debris (4 variants):**
-- `broken-asteroid-1_spritesheet-96px-6x4.png`
-- `broken-asteroid-2_spritesheet-96px-6x4.png`
-- `broken-asteroid-3_spritesheet-96px-6x4.png`
-- `broken-asteroid-4_spritesheet-96px-6x4.png`
+- `broken-asteroid-1-96px-6x4.png`
+- `broken-asteroid-2-96px-6x4.png`
+- `broken-asteroid-3-96px-6x4.png`
+- `broken-asteroid-4-96px-6x4.png`
 - These represent fragments created when asteroids are destroyed
 
 ### Rocket Projectiles
 
 **Rocket Animation Frames (4 frames):**
-- `rocket-1_spritesheet-96px-6x4.png` - Frame 1
-- `rocket-2_spritesheet-96px-6x4.png` - Frame 2
-- `rocket-3_spritesheet-96px-6x4.png` - Frame 3
-- `rocket-4_spritesheet-96px-6x4.png` - Frame 4
+- `rocket-1-96px-6x4.png` - Frame 1
+- `rocket-2-96px-6x4.png` - Frame 2
+- `rocket-3-96px-6x4.png` - Frame 3
+- `rocket-4-96px-6x4.png` - Frame 4
 - Each sheet contains 24 rotational positions for a single animation frame
 - Cycling through frames 1-4 creates the rocket engine animation
 

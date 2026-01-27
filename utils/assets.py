@@ -72,16 +72,16 @@ def load_powerup_sprites(root: Path = ASSET_ROOT):
 
 # Ship core sheets
 SHIP_SPECS = [
-    SpriteSheetSpec("static", "spaceship-static_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("static", "spaceship-static-96px-6x4.png", cols=6, rows=4, frame_size=96),
     SpriteSheetSpec("thrust", "spaceship-96px-6x4.png", cols=6, rows=4, frame_size=96),
 ]
 
 # Ship firing variants
 FIRE_SPECS = [
-    SpriteSheetSpec("fire_thrust_left", "spaceship-fire-left_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("fire_thrust_right", "spaceship-fire-right_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("fire_static_left", "spaceship-static-fire-left_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("fire_static_right", "spaceship-static-fire-right_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("fire_thrust_left", "spaceship-fire-left-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("fire_thrust_right", "spaceship-fire-right-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("fire_static_left", "spaceship-static-fire-left-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("fire_static_right", "spaceship-static-fire-right-96px-6x4.png", cols=6, rows=4, frame_size=96),
 ]
 
 # Shield animation
@@ -89,18 +89,18 @@ SHIELD_SPEC = SpriteSheetSpec("shield", "shield-96px-3x1.png", cols=3, rows=1, f
 
 # Ship damage progression
 DAMAGE_SPECS = [
-    SpriteSheetSpec("damage_1", "spaceship-damaged-1_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("damage_2", "spaceship-damaged-2_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("damage_3", "spaceship-damaged-3_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("damage_4", "spaceship-damaged-4_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("damage_5", "spaceship-damaged-5_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("damage_6", "spaceship-damaged-6_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("damage_7", "spaceship-damaged-7_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("damage_8", "spaceship-damaged-8_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("damage_9", "spaceship-damaged-9_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("damage_10", "spaceship-damaged-10_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("damage_11", "spaceship-damaged-11_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("damage_12", "spaceship-damaged-12_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_1", "spaceship-damaged-1-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_2", "spaceship-damaged-2-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_3", "spaceship-damaged-3-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_4", "spaceship-damaged-4-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_5", "spaceship-damaged-5-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_6", "spaceship-damaged-6-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_7", "spaceship-damaged-7-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_8", "spaceship-damaged-8-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_9", "spaceship-damaged-9-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_10", "spaceship-damaged-10-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_11", "spaceship-damaged-11-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("damage_12", "spaceship-damaged-12-96px-6x4.png", cols=6, rows=4, frame_size=96),
 ]
 
 # Asteroid stages and broken debris
@@ -112,16 +112,16 @@ ASTEROID_STAGE_SPECS = [
 ]
 
 BROKEN_ASTEROID_SPECS = [
-    SpriteSheetSpec("broken_1", "broken-asteroid-1_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("broken_2", "broken-asteroid-2_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("broken_3", "broken-asteroid-3_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("broken_4", "broken-asteroid-4_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("broken_1", "broken-asteroid-1-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("broken_2", "broken-asteroid-2-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("broken_3", "broken-asteroid-3-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("broken_4", "broken-asteroid-4-96px-6x4.png", cols=6, rows=4, frame_size=96),
 ]
 
 # Rocket sheets (animation frames, each with 24 rotations)
 ROCKET_SPECS = [
-    SpriteSheetSpec("rocket_1", "rocket-1_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("rocket_2", "rocket-2_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("rocket_3", "rocket-3_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("rocket_4", "rocket-4_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("rocket_1", "rocket-1-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("rocket_2", "rocket-2-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("rocket_3", "rocket-3-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("rocket_4", "rocket-4-96px-6x4.png", cols=6, rows=4, frame_size=96),
 ]
