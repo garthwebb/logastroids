@@ -17,7 +17,7 @@ Or for non-grid layouts:
 ```
 
 Where:
-- **name**: Descriptive name of the sprite (e.g., `spaceship`, `rocket-1`, `icy-asteriod`)
+- **name**: Descriptive name of the sprite (e.g., `spaceship`, `rocket-1`, `icy-asteroid`)
 - **size**: Frame size in pixels (e.g., `96px`, `48px`)
 - **cols**: Number of columns in the sprite sheet grid (e.g., `6`)
 - **rows**: Number of rows in the sprite sheet grid (e.g., `4`)
@@ -38,7 +38,7 @@ Special cases:
 
 **Core Ship States:**
 - `spaceship-static_spritesheet-96px-6x4.png` - Spaceship at rest (no thrust)
-- `spaceship_spritesheet-96px-6x4.png` - Spaceship with main thrust engaged
+- `spaceship-96px-6x4.png` - Spaceship with main thrust engaged
 
 **Firing Variants:**
 - `spaceship-fire-left_spritesheet-96px-6x4.png` - Firing left weapon with thrust
@@ -54,10 +54,10 @@ Special cases:
 ### Asteroid Sprites
 
 **Main Asteroid Stages (4 types):**
-- `icy-asteriod_spritesheet-96px-6x4.png` - Stage 1: Icy asteroid
-- `green-asteriod_spritesheet-96px-6x4.png` - Stage 2: Green asteroid
-- `rocky-asteriod_spritesheet-96px-6x4.png` - Stage 3: Rocky asteroid
-- `motlen-asteriod_spritesheet-96px-6x4.png` - Stage 4: Molten asteroid
+- `icy-asteroid_spritesheet-96px-6x4.png` - Stage 1: Icy asteroid
+- `green-asteroid_spritesheet-96px-6x4.png` - Stage 2: Green asteroid
+- `rocky-asteroid_spritesheet-96px-6x4.png` - Stage 3: Rocky asteroid
+- `molten-asteroid_spritesheet-96px-6x4.png` - Stage 4: Molten asteroid
 
 **Broken Asteroid Debris (4 variants):**
 - `broken-asteroid-1_spritesheet-96px-6x4.png`
