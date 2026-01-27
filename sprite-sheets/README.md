@@ -54,10 +54,10 @@ Special cases:
 ### Asteroid Sprites
 
 **Main Asteroid Stages (4 types):**
-- `icy-asteroid_spritesheet-96px-6x4.png` - Stage 1: Icy asteroid
-- `green-asteroid_spritesheet-96px-6x4.png` - Stage 2: Green asteroid
-- `rocky-asteroid_spritesheet-96px-6x4.png` - Stage 3: Rocky asteroid
-- `molten-asteroid_spritesheet-96px-6x4.png` - Stage 4: Molten asteroid
+- `icy-asteroid-96px-6x4.png` - Stage 1: Icy asteroid
+- `green-asteroid-96px-6x4.png` - Stage 2: Green asteroid
+- `rocky-asteroid-96px-6x4.png` - Stage 3: Rocky asteroid
+- `molten-asteroid-96px-6x4.png` - Stage 4: Molten asteroid
 
 **Broken Asteroid Debris (4 variants):**
 - `broken-asteroid-1_spritesheet-96px-6x4.png`

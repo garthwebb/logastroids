@@ -105,10 +105,10 @@ DAMAGE_SPECS = [
 
 # Asteroid stages and broken debris
 ASTEROID_STAGE_SPECS = [
-    SpriteSheetSpec("asteroid_stage_1", "icy-asteroid_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("asteroid_stage_2", "green-asteroid_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("asteroid_stage_3", "rocky-asteroid_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("asteroid_stage_4", "molten-asteroid_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("asteroid_stage_1", "icy-asteroid-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("asteroid_stage_2", "green-asteroid-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("asteroid_stage_3", "rocky-asteroid-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("asteroid_stage_4", "molten-asteroid-96px-6x4.png", cols=6, rows=4, frame_size=96),
 ]
 
 BROKEN_ASTEROID_SPECS = [
