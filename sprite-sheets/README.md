@@ -7,12 +7,6 @@ This folder contains all the sprite sheet assets used in the Logastroids game. S
 Sprite sheet files follow a consistent naming pattern:
 
 ```
-<name>_spritesheet-<size>px-<cols>x<rows>.png
-```
-
-Or for non-grid layouts:
-
-```
 <name>-<size>px-<cols>x<rows>.png
 ```
 
