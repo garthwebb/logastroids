@@ -73,7 +73,7 @@ def load_powerup_sprites(root: Path = ASSET_ROOT):
 # Ship core sheets
 SHIP_SPECS = [
     SpriteSheetSpec("static", "spaceship-static_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("thrust", "spaceship_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("thrust", "spaceship-96px-6x4.png", cols=6, rows=4, frame_size=96),
 ]
 
 # Ship firing variants
@@ -105,10 +105,10 @@ DAMAGE_SPECS = [
 
 # Asteroid stages and broken debris
 ASTEROID_STAGE_SPECS = [
-    SpriteSheetSpec("asteroid_stage_1", "icy-asteriod_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("asteroid_stage_2", "green-asteriod_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("asteroid_stage_3", "rocky-asteriod_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
-    SpriteSheetSpec("asteroid_stage_4", "motlen-asteriod_spritesheet-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("asteroid_stage_1", "icy-asteroid-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("asteroid_stage_2", "green-asteroid-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("asteroid_stage_3", "rocky-asteroid-96px-6x4.png", cols=6, rows=4, frame_size=96),
+    SpriteSheetSpec("asteroid_stage_4", "molten-asteroid-96px-6x4.png", cols=6, rows=4, frame_size=96),
 ]
 
 BROKEN_ASTEROID_SPECS = [
