@@ -86,7 +86,7 @@ def main():
     
     # Generate default output filename with actual sprite_size
     if output_filename is None:
-        output_filename = f"{Path(source_filename).stem}_spritesheet-{sprite_size}px-6x4.png"
+        output_filename = f"{Path(source_filename).stem}-{sprite_size}px-6x4.png"
     
     create_rotational_spritesheet(
         source_path=source_filename,
