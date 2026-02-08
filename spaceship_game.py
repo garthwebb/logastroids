@@ -45,13 +45,50 @@ def main():
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption("Asteroid-Style Spaceship Game")
     clock = pygame.time.Clock()
+
+    # Load audio
+    gun_sound = None
+    start_sound = None
+    shield_hit_sound = None
+    intro_music = None
+    asteroid_destroyed_sound = None
+    asteroid_hit_sound = None
+    ship_destroyed_sound = None
+    try:
+        if not pygame.mixer.get_init():
+            pygame.mixer.init()
+        gun_sound_path = os.path.join(os.path.dirname(__file__), "audio", "basic-gun.mp3")
+        gun_sound = pygame.mixer.Sound(gun_sound_path)
+        start_sound_path = os.path.join(os.path.dirname(__file__), "audio", "start-play.mp3")
+        start_sound = pygame.mixer.Sound(start_sound_path)
+        shield_hit_sound_path = os.path.join(os.path.dirname(__file__), "audio", "shield-hit.mp3")
+        shield_hit_sound = pygame.mixer.Sound(shield_hit_sound_path)
+        intro_music_path = os.path.join(os.path.dirname(__file__), "audio", "intro-music.mp3")
+        intro_music = pygame.mixer.Sound(intro_music_path)
+        asteroid_destroyed_sound_path = os.path.join(os.path.dirname(__file__), "audio", "asteroid-destroyed.mp3")
+        asteroid_destroyed_sound = pygame.mixer.Sound(asteroid_destroyed_sound_path)
+        asteroid_hit_sound_path = os.path.join(os.path.dirname(__file__), "audio", "asteroid-hit.mp3")
+        asteroid_hit_sound = pygame.mixer.Sound(asteroid_hit_sound_path)
+        ship_destroyed_sound_path = os.path.join(os.path.dirname(__file__), "audio", "ship-destroyed.mp3")
+        ship_destroyed_sound = pygame.mixer.Sound(ship_destroyed_sound_path)
+
+        background_music_path = os.path.join(os.path.dirname(__file__), "audio", "background-1.mp3")
+        pygame.mixer.music.load(background_music_path)
+    except pygame.error:
+        gun_sound = None
+        start_sound = None
+        shield_hit_sound = None
+        intro_music = None
+        asteroid_destroyed_sound = None
+        asteroid_hit_sound = None
+        ship_destroyed_sound = None
     
     # Initialize background manager
     background_manager = BackgroundManager(
         WINDOW_WIDTH, 
         WINDOW_HEIGHT,
-        backgrounds=["pixel-starfield.png"],  # Can add more backgrounds here
-        levels_per_background=5
+        backgrounds=["pixel-starfield.png", "bg-red-giant.png"],  # Can add more backgrounds here
+        levels_per_background=3
     )
     
     # Load spritesheets
@@ -76,6 +113,8 @@ def main():
         fire_static_left=fire_sheets.get("fire_static_left", []),
         fire_static_right=fire_sheets.get("fire_static_right", []),
         rocket_sheets=rocket_sheets,
+        shield_hit_sound=shield_hit_sound,
+        ship_destroyed_sound=ship_destroyed_sound,
         x=WINDOW_WIDTH // 2,
         y=WINDOW_HEIGHT // 2,
     )
@@ -171,10 +210,48 @@ def main():
     score = 0
     game_over = False
     game_started = False
+    starting_transition = False
+    starting_transition_timer = 0
+    fade_in = False
+    fade_in_timer = 0
+    FADE_IN_DURATION = int(0.5 * FPS)  # 0.5 seconds
     high_scores = load_high_scores()
     entering_name = False
     player_name = ""
+    cheat_mode = False
+    cheat_buffer = ""
     running = True
+    
+    # Start intro music
+    if intro_music:
+        intro_music.play(-1)
+
+    def jump_to_level(target_level):
+        nonlocal current_level
+        nonlocal asteroids_spawned_this_level
+        nonlocal asteroids_destroyed_this_level
+        nonlocal spawn_interval_frames
+        nonlocal spawn_timer
+
+        current_level = max(1, target_level)
+        asteroids_spawned_this_level = 0
+        asteroids_destroyed_this_level = 0
+
+        background_manager.update_background_for_level(current_level)
+
+        initial_asteroids, max_asteroids, total_asteroids, spawn_interval_seconds = get_level_params(current_level)
+        spawn_interval_frames = int(spawn_interval_seconds * FPS)
+
+        bullets.empty()
+        rockets.empty()
+        asteroids.empty()
+        explosions.empty()
+        powerups.empty()
+
+        for _ in range(initial_asteroids):
+            spawn_asteroid()
+            asteroids_spawned_this_level += 1
+        spawn_timer = 0
     
     while running:
         clock.tick(FPS)
@@ -195,21 +272,62 @@ def main():
                         player_name = player_name[:-1]
                     elif len(player_name) < 12 and event.unicode.isprintable():
                         player_name += event.unicode
+                elif cheat_mode:
+                    if event.key == pygame.K_RETURN:
+                        if cheat_buffer.isdigit():
+                            jump_to_level(int(cheat_buffer))
+                        cheat_mode = False
+                        cheat_buffer = ""
+                    elif event.key == pygame.K_ESCAPE:
+                        cheat_mode = False
+                        cheat_buffer = ""
+                    elif event.key == pygame.K_BACKSPACE:
+                        cheat_buffer = cheat_buffer[:-1]
+                    elif event.unicode.isdigit() and len(cheat_buffer) < 3:
+                        cheat_buffer += event.unicode
+                elif event.key == pygame.K_F1 and game_started and not game_over:
+                    cheat_mode = True
+                    cheat_buffer = ""
                 elif event.key == pygame.K_SPACE and not game_over and game_started:
                     bullet = spaceship.fire()
                     if bullet:
                         bullets.add(bullet)
                         all_sprites.add(bullet)
+                        if gun_sound:
+                            gun_sound.stop()
+                            gun_sound.play()
                 elif event.key == pygame.K_b and not game_over and game_started:
                     rocket = spaceship.fire_rocket()
                     if rocket:
                         rockets.add(rocket)
                         all_sprites.add(rocket)
+                        if gun_sound:
+                            gun_sound.stop()
+                            gun_sound.play()
                 elif event.key == pygame.K_p:
-                    if not game_started:
-                        game_started = True
+                    if not game_started and not starting_transition:
+                        starting_transition = True
+                        starting_transition_timer = 0
+                        if intro_music:
+                            intro_music.stop()
+                        if start_sound:
+                            start_sound.play()
+                            # Calculate duration in frames (get length in seconds, multiply by FPS)
+                            starting_transition_timer = int(start_sound.get_length() * FPS)
+                        else:
+                            # Fallback if sound fails to load
+                            starting_transition_timer = int(2 * FPS)
                     elif game_over and not entering_name:
                         game_over = False
+                        starting_transition = True
+                        starting_transition_timer = 0
+                        if intro_music:
+                            intro_music.stop()
+                        if start_sound:
+                            start_sound.play()
+                            starting_transition_timer = int(start_sound.get_length() * FPS)
+                        else:
+                            starting_transition_timer = int(2 * FPS)
                         current_level = 1
                         asteroids_spawned_this_level = 0
                         asteroids_destroyed_this_level = 0
@@ -238,6 +356,8 @@ def main():
                             fire_static_left=fire_sheets.get("fire_static_left", []),
                             fire_static_right=fire_sheets.get("fire_static_right", []),
                             rocket_sheets=rocket_sheets,
+                            shield_hit_sound=shield_hit_sound,
+                            ship_destroyed_sound=ship_destroyed_sound,
                             x=WINDOW_WIDTH // 2,
                             y=WINDOW_HEIGHT // 2,
                         )
@@ -255,6 +375,21 @@ def main():
         # Check for ESC to quit
         if keys[pygame.K_ESCAPE]:
             running = False
+        
+        # Handle starting transition (black screen during start sound)
+        if starting_transition:
+            starting_transition_timer -= 1
+            if starting_transition_timer <= 0:
+                # Transition complete, start the game with fade-in
+                starting_transition = False
+                game_started = True
+                fade_in = True
+                fade_in_timer = FADE_IN_DURATION
+                pygame.mixer.music.play(-1, fade_ms=500)  # Fade in music over 500ms
+            # Draw black screen
+            screen.fill(BLACK)
+            pygame.display.flip()
+            continue
         
         # Show start screen if game hasn't started
         if not game_started:
@@ -278,10 +413,14 @@ def main():
         for asteroid in pygame.sprite.groupcollide(asteroids, bullets, False, True):
             alive = asteroid.take_damage(1)
             score += 1
+            if asteroid_hit_sound:
+                asteroid_hit_sound.play()
             if not alive:
                 score += 10
                 asteroids_destroyed_this_level += 1
                 create_explosion(asteroid.x, asteroid.y, asteroid.rotation, asteroid.rotation_speed, asteroid.vx, asteroid.vy)
+                if asteroid_destroyed_sound:
+                    asteroid_destroyed_sound.play()
                 
                 # Randomly spawn a power-up when asteroid is destroyed
                 if random.random() < POWERUP_SPAWN_CHANCE:
@@ -342,10 +481,14 @@ def main():
                     alive = asteroid.take_damage(4)
                     score += 1
                     rocket.kill()
+                    if asteroid_hit_sound:
+                        asteroid_hit_sound.play()
                     if not alive:
                         score += 10
                         asteroids_destroyed_this_level += 1
                         create_explosion(asteroid.x, asteroid.y, asteroid.rotation, asteroid.rotation_speed, asteroid.vx, asteroid.vy)
+                        if asteroid_destroyed_sound:
+                            asteroid_destroyed_sound.play()
                         
                         # Randomly spawn a power-up when asteroid is destroyed
                         if random.random() < POWERUP_SPAWN_CHANCE:
@@ -416,6 +559,24 @@ def main():
         if not spaceship.is_exploding and spaceship.spawn_shield <= 0:
             for asteroid in pygame.sprite.spritecollide(spaceship, asteroids, False, pygame.sprite.collide_circle):
                 spaceship.take_damage(asteroid)
+                # Asteroid also takes 1 damage from the collision
+                alive = asteroid.take_damage(1)
+                if asteroid_hit_sound:
+                    asteroid_hit_sound.play()
+                if not alive:
+                    score += 10
+                    asteroids_destroyed_this_level += 1
+                    create_explosion(asteroid.x, asteroid.y, asteroid.rotation, asteroid.rotation_speed, asteroid.vx, asteroid.vy)
+                    if asteroid_destroyed_sound:
+                        asteroid_destroyed_sound.play()
+                    asteroid.kill()
+                    
+                    # Spawn a new asteroid immediately when one is destroyed (if limits allow)
+                    if (len(asteroids) < max_asteroids and 
+                        asteroids_spawned_this_level < total_asteroids):
+                        spawn_asteroid()
+                        asteroids_spawned_this_level += 1
+                        spawn_timer = 0
         
         # Power-up vs spaceship collisions
         for powerup in pygame.sprite.spritecollide(spaceship, powerups, True):
@@ -453,6 +614,9 @@ def main():
                 if game_over_delay_timer == 0 and respawn_timer == 0:
                     # Delay is over, show game over screen
                     game_over = True
+                    pygame.mixer.music.stop()
+                    if intro_music:
+                        intro_music.play(-1)
                     if is_high_score(score, high_scores):
                         entering_name = True
                         player_name = ""
@@ -473,6 +637,19 @@ def main():
             draw_invulnerability(screen, spaceship.invulnerability_time, fps=FPS)
         draw_score(screen, score)
         draw_level(screen, current_level)
+        
+        # Apply fade-in effect if active
+        if fade_in:
+            fade_in_timer -= 1
+            if fade_in_timer <= 0:
+                fade_in = False
+            else:
+                # Calculate alpha from 255 (black) to 0 (transparent)
+                alpha = int(255 * (fade_in_timer / FADE_IN_DURATION))
+                fade_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+                fade_surface.fill(BLACK)
+                fade_surface.set_alpha(alpha)
+                screen.blit(fade_surface, (0, 0))
 
         pygame.display.flip()
     

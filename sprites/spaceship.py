@@ -12,7 +12,7 @@ class Spaceship(pygame.sprite.Sprite):
     def __init__(self, *groups,
                  sprites_static=None, sprites_thrust=None, damage_sprites=None, shield_sprites=None,
                  fire_thrust_left=None, fire_thrust_right=None, fire_static_left=None, fire_static_right=None,
-                 rocket_sheets=None,
+                 rocket_sheets=None, shield_hit_sound=None, ship_destroyed_sound=None,
                  x=None, y=None, spawn_shield=120, sprite_radius=32):
         super().__init__(*groups)
         self.sprites_static = sprites_static or []  # List of rotated sprite frames without thrust
@@ -25,6 +25,8 @@ class Spaceship(pygame.sprite.Sprite):
         self.damage_sprites = damage_sprites or []  # List of damage stage sprite sheets
         self.shield_sprites = shield_sprites or []  # List of shield animation frames
         self.rocket_sheets = rocket_sheets or []  # List of 4 rocket animation sheets
+        self.shield_hit_sound = shield_hit_sound  # Sound to play when shields get hit
+        self.ship_destroyed_sound = ship_destroyed_sound  # Sound to play when ship is destroyed
         self.current_frame = 0
         # Provide a safe placeholder if assets are missing
         if self.sprites_static:
@@ -284,12 +286,20 @@ class Spaceship(pygame.sprite.Sprite):
             self.is_exploding = True
             self.explosion_tick = 0
             self.explosion_frame = 0
+            
+            # Play ship destroyed sound
+            if self.ship_destroyed_sound:
+                self.ship_destroyed_sound.play()
         else:
             # Ship survived - show shield animation and add brief invulnerability
             self.shield_active = True
             self.shield_timer = self.shield_duration
             self.shield_frame = 0
             self.hit_invulnerability = 20  # 20 frames of invulnerability to prevent rapid hits
+            
+            # Play shield hit sound
+            if self.shield_hit_sound:
+                self.shield_hit_sound.play()
             
             # Apply elastic collision between ship and asteroid
             if asteroid:
