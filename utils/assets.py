@@ -125,3 +125,7 @@ ROCKET_SPECS = [
     SpriteSheetSpec("rocket_3", "rocket-3-96px-6x4.png", cols=6, rows=4, frame_size=96),
     SpriteSheetSpec("rocket_4", "rocket-4-96px-6x4.png", cols=6, rows=4, frame_size=96),
 ]
+
+# Boss and fireball sprites
+BOSS_SPEC = SpriteSheetSpec("boss_ship", "boss-ship-1-128px-6x4.png", cols=6, rows=4, frame_size=128)
+FIREBALL_SPEC = SpriteSheetSpec("fireball", "fireball-48px-6x4.png", cols=6, rows=4, frame_size=48)

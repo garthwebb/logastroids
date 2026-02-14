@@ -15,7 +15,7 @@ from constants import (
     POWERUP_SPAWN_CHANCE, HEALTH_POWERUP_WEIGHT, INVULNERABILITY_POWERUP_WEIGHT,
     ROCKETS_POWERUP_WEIGHT, SHIELDS_POWERUP_WEIGHT
 )
-from sprites import Spaceship, Bullet, Rocket, Asteroid, Explosion, PowerUp
+from sprites import Spaceship, Bullet, Rocket, Asteroid, Explosion, PowerUp, BossShip, Fireball
 from utils import (
     load_sheet,
     load_specs_dict,
@@ -28,6 +28,8 @@ from utils import (
     ASTEROID_STAGE_SPECS,
     BROKEN_ASTEROID_SPECS,
     ROCKET_SPECS,
+    BOSS_SPEC,
+    FIREBALL_SPEC,
 )
 from ui import (
     draw_health, draw_score, draw_level, draw_game_over, draw_start_screen,
@@ -54,6 +56,8 @@ def main():
     asteroid_destroyed_sound = None
     asteroid_hit_sound = None
     ship_destroyed_sound = None
+    rocket_sound = None
+    typing_sound = None
     try:
         if not pygame.mixer.get_init():
             pygame.mixer.init()
@@ -71,6 +75,10 @@ def main():
         asteroid_hit_sound = pygame.mixer.Sound(asteroid_hit_sound_path)
         ship_destroyed_sound_path = os.path.join(os.path.dirname(__file__), "audio", "ship-destroyed.mp3")
         ship_destroyed_sound = pygame.mixer.Sound(ship_destroyed_sound_path)
+        rocket_sound_path = os.path.join(os.path.dirname(__file__), "audio", "rockets.mp3")
+        rocket_sound = pygame.mixer.Sound(rocket_sound_path)
+        typing_sound_path = os.path.join(os.path.dirname(__file__), "audio", "typing.mp3")
+        typing_sound = pygame.mixer.Sound(typing_sound_path)
 
         background_music_path = os.path.join(os.path.dirname(__file__), "audio", "background-1.mp3")
         pygame.mixer.music.load(background_music_path)
@@ -82,6 +90,8 @@ def main():
         asteroid_destroyed_sound = None
         asteroid_hit_sound = None
         ship_destroyed_sound = None
+        rocket_sound = None
+        typing_sound = None
     
     # Initialize background manager
     background_manager = BackgroundManager(
@@ -101,6 +111,8 @@ def main():
     asteroid_stage_sheets = load_specs_list(ASTEROID_STAGE_SPECS)
     broken_sheets = load_specs_list(BROKEN_ASTEROID_SPECS)
     rocket_sheets = load_specs_list(ROCKET_SPECS)
+    boss_sprites = load_sheet(BOSS_SPEC)
+    fireball_sprites = load_sheet(FIREBALL_SPEC)
 
     # Create spaceship
     spaceship = Spaceship(
@@ -115,6 +127,7 @@ def main():
         rocket_sheets=rocket_sheets,
         shield_hit_sound=shield_hit_sound,
         ship_destroyed_sound=ship_destroyed_sound,
+        rocket_sound=rocket_sound,
         x=WINDOW_WIDTH // 2,
         y=WINDOW_HEIGHT // 2,
     )
@@ -129,6 +142,8 @@ def main():
     asteroids = pygame.sprite.Group()
     explosions = pygame.sprite.Group()
     powerups = pygame.sprite.Group()
+    bosses = pygame.sprite.Group()
+    fireballs = pygame.sprite.Group()
 
     all_sprites.add(spaceship)
 
@@ -186,6 +201,11 @@ def main():
     asteroids_spawned_this_level = 0
     asteroids_destroyed_this_level = 0
     
+    # Boss battle state
+    boss_active = False
+    boss_instance = None
+    boss_fire_timer = 0
+    
     def get_level_params(level):
         initial = LEVEL_1_INITIAL_ASTEROIDS + (level - 1) * LEVEL_PROGRESSION_INITIAL
         max_on_screen = LEVEL_1_MAX_ON_SCREEN + (level - 1) * LEVEL_PROGRESSION_MAX
@@ -232,10 +252,17 @@ def main():
         nonlocal asteroids_destroyed_this_level
         nonlocal spawn_interval_frames
         nonlocal spawn_timer
+        nonlocal boss_active
+        nonlocal boss_instance
+        nonlocal boss_fire_timer
 
         current_level = max(1, target_level)
         asteroids_spawned_this_level = 0
         asteroids_destroyed_this_level = 0
+        boss_active = False
+        if boss_instance:
+            boss_instance.kill()
+            boss_instance = None
 
         background_manager.update_background_for_level(current_level)
 
@@ -247,6 +274,8 @@ def main():
         asteroids.empty()
         explosions.empty()
         powerups.empty()
+        bosses.empty()
+        fireballs.empty()
 
         for _ in range(initial_asteroids):
             spawn_asteroid()
@@ -270,8 +299,12 @@ def main():
                         player_name = ""
                     elif event.key == pygame.K_BACKSPACE:
                         player_name = player_name[:-1]
+                        if typing_sound:
+                            typing_sound.play()
                     elif len(player_name) < 12 and event.unicode.isprintable():
                         player_name += event.unicode
+                        if typing_sound:
+                            typing_sound.play()
                 elif cheat_mode:
                     if event.key == pygame.K_RETURN:
                         if cheat_buffer.isdigit():
@@ -301,9 +334,6 @@ def main():
                     if rocket:
                         rockets.add(rocket)
                         all_sprites.add(rocket)
-                        if gun_sound:
-                            gun_sound.stop()
-                            gun_sound.play()
                 elif event.key == pygame.K_p:
                     if not game_started and not starting_transition:
                         starting_transition = True
@@ -331,6 +361,10 @@ def main():
                         current_level = 1
                         asteroids_spawned_this_level = 0
                         asteroids_destroyed_this_level = 0
+                        boss_active = False
+                        if boss_instance:
+                            boss_instance.kill()
+                            boss_instance = None
                         score = 0
                         entering_name = False
                         player_name = ""
@@ -342,6 +376,8 @@ def main():
                         asteroids.empty()
                         explosions.empty()
                         powerups.empty()
+                        bosses.empty()
+                        fireballs.empty()
                         
                         initial_asteroids, max_asteroids, total_asteroids, spawn_interval_seconds = get_level_params(current_level)
                         spawn_interval_frames = int(spawn_interval_seconds * FPS)
@@ -471,89 +507,97 @@ def main():
         for rocket in list(rockets):
             if rocket not in all_sprites:
                 continue
-            for asteroid in asteroids:
-                # Circle-based collision between rocket and asteroid
-                dx = rocket.x - asteroid.x
-                dy = rocket.y - asteroid.y
-                distance = math.sqrt(dx * dx + dy * dy)
-                if distance < (rocket.radius + asteroid.radius):
-                    # Collision! Rocket does 4 damage (destroys in one hit)
-                    alive = asteroid.take_damage(4)
-                    score += 1
-                    rocket.kill()
-                    if asteroid_hit_sound:
-                        asteroid_hit_sound.play()
-                    if not alive:
-                        score += 10
-                        asteroids_destroyed_this_level += 1
-                        create_explosion(asteroid.x, asteroid.y, asteroid.rotation, asteroid.rotation_speed, asteroid.vx, asteroid.vy)
-                        if asteroid_destroyed_sound:
-                            asteroid_destroyed_sound.play()
+            hits = pygame.sprite.spritecollide(rocket, asteroids, False, pygame.sprite.collide_circle)
+            if not hits:
+                continue
+            asteroid = hits[0]
+            # Collision! Rocket does 4 damage (destroys in one hit)
+            alive = asteroid.take_damage(4)
+            score += 1
+            rocket.kill()
+            if asteroid_hit_sound:
+                asteroid_hit_sound.play()
+            if not alive:
+                score += 10
+                asteroids_destroyed_this_level += 1
+                create_explosion(asteroid.x, asteroid.y, asteroid.rotation, asteroid.rotation_speed, asteroid.vx, asteroid.vy)
+                if asteroid_destroyed_sound:
+                    asteroid_destroyed_sound.play()
+                
+                # Randomly spawn a power-up when asteroid is destroyed
+                if random.random() < POWERUP_SPAWN_CHANCE:
+                    roll = random.random()
+                    if roll < HEALTH_POWERUP_WEIGHT:
+                        powerup_type = PowerUp.HEALTH
+                    elif roll < HEALTH_POWERUP_WEIGHT + INVULNERABILITY_POWERUP_WEIGHT:
+                        powerup_type = PowerUp.INVULNERABILITY
+                    elif roll < HEALTH_POWERUP_WEIGHT + INVULNERABILITY_POWERUP_WEIGHT + ROCKETS_POWERUP_WEIGHT:
+                        powerup_type = PowerUp.ROCKETS
+                    else:
+                        powerup_type = PowerUp.SHIELDS  # Remaining weight
+                    
+                    powerup_sprite = powerup_sprites[powerup_type]
+                    powerup = PowerUp(asteroid.x, asteroid.y, powerup_type, powerup_sprite)
+                    powerups.add(powerup)
+                    all_sprites.add(powerup)
+                
+                # Spawn child asteroids if this is a parent asteroid and level >= 3
+                if asteroid.spawn_children and asteroid.scale == 1.0 and current_level >= 3:
+                    child_scale = 0.5
+                    for i in range(3):
+                        angle = (i * 120) * math.pi / 180
+                        child_speed = 2.0
+                        child_vx = asteroid.vx + math.cos(angle) * child_speed
+                        child_vy = asteroid.vy + math.sin(angle) * child_speed
                         
-                        # Randomly spawn a power-up when asteroid is destroyed
-                        if random.random() < POWERUP_SPAWN_CHANCE:
-                            roll = random.random()
-                            if roll < HEALTH_POWERUP_WEIGHT:
-                                powerup_type = PowerUp.HEALTH
-                            elif roll < HEALTH_POWERUP_WEIGHT + INVULNERABILITY_POWERUP_WEIGHT:
-                                powerup_type = PowerUp.INVULNERABILITY
-                            elif roll < HEALTH_POWERUP_WEIGHT + INVULNERABILITY_POWERUP_WEIGHT + ROCKETS_POWERUP_WEIGHT:
-                                powerup_type = PowerUp.ROCKETS
-                            else:
-                                powerup_type = PowerUp.SHIELDS  # Remaining weight
-                            
-                            powerup_sprite = powerup_sprites[powerup_type]
-                            powerup = PowerUp(asteroid.x, asteroid.y, powerup_type, powerup_sprite)
-                            powerups.add(powerup)
-                            all_sprites.add(powerup)
+                        offset_dist = 30
+                        child_x = asteroid.x + math.cos(angle) * offset_dist
+                        child_y = asteroid.y + math.sin(angle) * offset_dist
                         
-                        # Spawn child asteroids if this is a parent asteroid and level >= 3
-                        if asteroid.spawn_children and asteroid.scale == 1.0 and current_level >= 3:
-                            child_scale = 0.5
-                            for i in range(3):
-                                angle = (i * 120) * math.pi / 180
-                                child_speed = 2.0
-                                child_vx = asteroid.vx + math.cos(angle) * child_speed
-                                child_vy = asteroid.vy + math.sin(angle) * child_speed
-                                
-                                offset_dist = 30
-                                child_x = asteroid.x + math.cos(angle) * offset_dist
-                                child_y = asteroid.y + math.sin(angle) * offset_dist
-                                
-                                child_asteroid = Asteroid(asteroid_stage_sheets, 2, child_x, child_y, child_vx, child_vy, 
-                                                         random.uniform(0, 360), random.uniform(*ASTEROID_ROTATION_RANGE),
-                                                         scale=child_scale, spawn_children=False)
-                                asteroids.add(child_asteroid)
-                                all_sprites.add(child_asteroid)
-                        
-                        asteroid.kill()
-                        
-                        # Spawn a new asteroid immediately when one is destroyed (if limits allow)
-                        if (len(asteroids) < max_asteroids and 
-                            asteroids_spawned_this_level < total_asteroids):
-                            spawn_asteroid()
-                            asteroids_spawned_this_level += 1
-                            spawn_timer = 0
-                    break
+                        child_asteroid = Asteroid(asteroid_stage_sheets, 2, child_x, child_y, child_vx, child_vy, 
+                                                 random.uniform(0, 360), random.uniform(*ASTEROID_ROTATION_RANGE),
+                                                 scale=child_scale, spawn_children=False)
+                        asteroids.add(child_asteroid)
+                        all_sprites.add(child_asteroid)
+                
+                asteroid.kill()
+                
+                # Spawn a new asteroid immediately when one is destroyed (if limits allow)
+                if (len(asteroids) < max_asteroids and 
+                    asteroids_spawned_this_level < total_asteroids):
+                    spawn_asteroid()
+                    asteroids_spawned_this_level += 1
+                    spawn_timer = 0
         
         # Check for level completion
         if (asteroids_destroyed_this_level >= total_asteroids and 
             len(asteroids) == 0 and 
-            len(explosions) == 0):
-            current_level += 1
-            asteroids_spawned_this_level = 0
-            asteroids_destroyed_this_level = 0
+            len(explosions) == 0 and
+            not boss_active):
             
-            # Update background for new level
-            background_manager.update_background_for_level(current_level)
-            
-            initial_asteroids, max_asteroids, total_asteroids, spawn_interval_seconds = get_level_params(current_level)
-            spawn_interval_frames = int(spawn_interval_seconds * FPS)
-            
-            for _ in range(initial_asteroids):
-                spawn_asteroid()
-                asteroids_spawned_this_level += 1
-            spawn_timer = 0
+            # Check if level 3 is complete - trigger boss battle
+            if current_level == 3:
+                boss_active = True
+                boss_instance = BossShip(x=WINDOW_WIDTH // 2, y=WINDOW_HEIGHT // 4, sprite_sheet=boss_sprites, fireball_sheet=fireball_sprites)
+                bosses.add(boss_instance)
+                all_sprites.add(boss_instance)
+                boss_fire_timer = 60  # Initial delay before first volley
+            else:
+                # Normal level progression
+                current_level += 1
+                asteroids_spawned_this_level = 0
+                asteroids_destroyed_this_level = 0
+                
+                # Update background for new level
+                background_manager.update_background_for_level(current_level)
+                
+                initial_asteroids, max_asteroids, total_asteroids, spawn_interval_seconds = get_level_params(current_level)
+                spawn_interval_frames = int(spawn_interval_seconds * FPS)
+                
+                for _ in range(initial_asteroids):
+                    spawn_asteroid()
+                    asteroids_spawned_this_level += 1
+                spawn_timer = 0
         
         # Asteroid vs spaceship collisions
         if not spaceship.is_exploding and spaceship.spawn_shield <= 0:
@@ -577,6 +621,89 @@ def main():
                         spawn_asteroid()
                         asteroids_spawned_this_level += 1
                         spawn_timer = 0
+        
+        # Boss battle logic
+        if boss_active and boss_instance:
+            # Boss fires fireballs periodically
+            boss_fire_timer -= 1
+            if boss_fire_timer <= 0:
+                new_fireballs = boss_instance.fire_volley()
+                for fireball in new_fireballs:
+                    fireballs.add(fireball)
+                    all_sprites.add(fireball)
+                boss_fire_timer = 60  # Reset timer (1 second at 60 FPS)
+            
+            # Type assertion to help type checker
+            assert boss_instance is not None
+            
+            # Bullets vs boss
+            for bullet in pygame.sprite.spritecollide(boss_instance, bullets, True):
+                if boss_instance.take_damage():
+                    # Boss defeated! Save position before cleanup
+                    boss_x, boss_y = boss_instance.x, boss_instance.y
+                    score += 1000
+                    create_explosion(boss_x, boss_y, 0, 0, 0, 0)
+                    if asteroid_destroyed_sound:
+                        asteroid_destroyed_sound.play()
+                    boss_instance.kill()
+                    boss_active = False
+                    boss_instance = None
+                    
+                    # Progress to next level
+                    current_level += 1
+                    asteroids_spawned_this_level = 0
+                    asteroids_destroyed_this_level = 0
+                    background_manager.update_background_for_level(current_level)
+                    initial_asteroids, max_asteroids, total_asteroids, spawn_interval_seconds = get_level_params(current_level)
+                    spawn_interval_frames = int(spawn_interval_seconds * FPS)
+                    for _ in range(initial_asteroids):
+                        spawn_asteroid()
+                        asteroids_spawned_this_level += 1
+                    spawn_timer = 0
+                    break  # Exit loop after boss defeated
+                else:
+                    score += 10
+            
+            # Rockets vs boss (only if boss still active)
+            if boss_instance is not None:
+                for rocket in pygame.sprite.spritecollide(boss_instance, rockets, True):
+                    # Rockets do 3 damage
+                    destroyed = False
+                    for _ in range(3):
+                        if boss_instance.take_damage():
+                            destroyed = True
+                            break
+                    
+                    if destroyed:
+                        # Boss defeated! Save position before cleanup
+                        boss_x, boss_y = boss_instance.x, boss_instance.y
+                        score += 1000
+                        create_explosion(boss_x, boss_y, 0, 0, 0, 0)
+                        if asteroid_destroyed_sound:
+                            asteroid_destroyed_sound.play()
+                        boss_instance.kill()
+                        boss_active = False
+                        boss_instance = None
+                        
+                        # Progress to next level
+                        current_level += 1
+                        asteroids_spawned_this_level = 0
+                        asteroids_destroyed_this_level = 0
+                        background_manager.update_background_for_level(current_level)
+                        initial_asteroids, max_asteroids, total_asteroids, spawn_interval_seconds = get_level_params(current_level)
+                        spawn_interval_frames = int(spawn_interval_seconds * FPS)
+                        for _ in range(initial_asteroids):
+                            spawn_asteroid()
+                            asteroids_spawned_this_level += 1
+                        spawn_timer = 0
+                        break  # Exit loop after boss defeated
+                    else:
+                        score += 30
+            
+            # Fireballs vs spaceship
+            if not spaceship.is_exploding and spaceship.spawn_shield <= 0:
+                for fireball in pygame.sprite.spritecollide(spaceship, fireballs, True, pygame.sprite.collide_circle):
+                    spaceship.take_damage()
         
         # Power-up vs spaceship collisions
         for powerup in pygame.sprite.spritecollide(spaceship, powerups, True):
@@ -628,6 +755,8 @@ def main():
         asteroids.draw(screen)
         explosions.draw(screen)
         powerups.draw(screen)
+        bosses.draw(screen)
+        fireballs.draw(screen)
         if spaceship in all_sprites:
             spaceship.draw(screen)
         draw_health(screen, spaceship.health if spaceship in all_sprites else 0, max_segments=spaceship.max_health if spaceship in all_sprites else 3)

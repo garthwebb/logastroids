@@ -12,7 +12,7 @@ class Spaceship(pygame.sprite.Sprite):
     def __init__(self, *groups,
                  sprites_static=None, sprites_thrust=None, damage_sprites=None, shield_sprites=None,
                  fire_thrust_left=None, fire_thrust_right=None, fire_static_left=None, fire_static_right=None,
-                 rocket_sheets=None, shield_hit_sound=None, ship_destroyed_sound=None,
+                 rocket_sheets=None, shield_hit_sound=None, ship_destroyed_sound=None, rocket_sound=None,
                  x=None, y=None, spawn_shield=120, sprite_radius=32):
         super().__init__(*groups)
         self.sprites_static = sprites_static or []  # List of rotated sprite frames without thrust
@@ -27,6 +27,7 @@ class Spaceship(pygame.sprite.Sprite):
         self.rocket_sheets = rocket_sheets or []  # List of 4 rocket animation sheets
         self.shield_hit_sound = shield_hit_sound  # Sound to play when shields get hit
         self.ship_destroyed_sound = ship_destroyed_sound  # Sound to play when ship is destroyed
+        self.rocket_sound = rocket_sound  # Sound to play when launching rockets
         self.current_frame = 0
         # Provide a safe placeholder if assets are missing
         if self.sprites_static:
@@ -247,6 +248,10 @@ class Spaceship(pygame.sprite.Sprite):
             return None
         if self.fire_cooldown > 0 or self.is_exploding:
             return None
+        
+        # Play rocket launch sound
+        if self.rocket_sound:
+            self.rocket_sound.play()
         
         # Consume a rocket if not in unlimited mode
         if not UNLIMITED_ROCKETS:

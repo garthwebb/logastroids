@@ -5,5 +5,7 @@ from sprites.rocket import Rocket
 from sprites.asteroid import Asteroid
 from sprites.explosion import Explosion
 from sprites.powerup import PowerUp
+from sprites.boss import BossShip
+from sprites.fireball import Fireball
 
-__all__ = ['Spaceship', 'Bullet', 'Rocket', 'Asteroid', 'Explosion', 'PowerUp']
+__all__ = ['Spaceship', 'Bullet', 'Rocket', 'Asteroid', 'Explosion', 'PowerUp', 'BossShip', 'Fireball']

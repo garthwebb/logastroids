@@ -9,6 +9,8 @@ from .assets import (
     SHIELD_SPEC,
     SHIP_SPECS,
     ASTEROID_STAGE_SPECS,
+    BOSS_SPEC,
+    FIREBALL_SPEC,
     SpriteSheetSpec,
     load_sheet,
     load_specs_dict,
